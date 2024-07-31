@@ -9,7 +9,7 @@ calibration = read_excel("1-data/Ebselen_plate_1.4.xlsx", sheet = "30min post st
 
 data = read_excel("1-data/Ebselen_plate_1.4.xlsx", sheet = "30min post stop_kfp",
                          skip = 1) %>% 
-  dplyr::select(time_for_urea, inhibitor_concentration, cell_concentration, `intensity...7`, skip)
+  dplyr::select(time_for_urea, Inhibitor_concentration, cell_concentration, `intensity...7`, skip)
 
 
 # process
@@ -25,11 +25,17 @@ data_processed =
   rename(intensity = `intensity...7`) %>% 
   filter(is.na(skip)) %>% 
   dplyr::select(-skip) %>% 
-  mutate(inhibitor_concentration = factor(inhibitor_concentration, 
+  mutate(Inhibitor_concentration = factor(Inhibitor_concentration, 
                                           levels = c("31.25um", "62.5um", "125um"))) %>% 
   drop_na()
 
 data_processed %>% 
-  ggplot(aes(x = time_for_urea, y = intensity, color = inhibitor_concentration))+
+  ggplot(aes(x = time_for_urea, y = intensity, color = Inhibitor_concentration))+
   geom_point()+
-  facet_wrap(~cell_concentration)
+  facet_wrap(~cell_concentration)+
+
+labs(title = "Ebselen 1.4",
+     subtitle = "Higher Intensity = Higher Urease activity",
+     x = "Time Urea Incubation",
+     y = "OD670 Intensity")
+ 
