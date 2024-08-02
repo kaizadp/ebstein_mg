@@ -28,31 +28,37 @@ data_processed =
   filter(!is.na(A1)) %>% 
   dplyr::select(-"...1", -"T° 600") %>% 
   rename(time = Time) %>% 
-  rowwise() %>% 
-  mutate(time = as.numeric(time),
-         time = chron::times(time)) %>% 
   filter(!is.na(time)) %>% 
+  mutate(time = as.numeric(time)) %>% 
   arrange(Plate, time) %>% 
- # mutate(time_hr = as.numeric(hms(time), units = "hours")) %>% 
- group_by(Plate) %>% 
-#  ungroup() %>% 
-  dplyr::mutate(time_diff = time - lag(time),
-                time_diff = case_when(is.na(time_diff) ~ time, TRUE ~ time_diff),
-                time_hr = as.numeric(hms(time), units = "hours")) %>% 
+  group_by(Plate) %>% 
+  rowwise() %>% 
+  # now clean up the time
+  # #1: importing from excel f-d up the format
+  # convert to the correct time format (h:m:s)
+  # #2: the time is split across multiple sheets/plates, 
+  # we need to add them all for an overall cumulative time
+  # so, calculate the difference between timesteps and then do a cumulative addition
+  mutate(
+         time = chron::times(time),
+         time_diff = time - lag(time),
+         time_diff = case_when(is.na(time_diff) ~ time, TRUE ~ time_diff),
+         time_hr = as.numeric(hms(time_diff), units = "hours")) %>% 
   ungroup() %>% 
-#  mutate(time_hr_cum = cumsum(time_hr)) %>% 
-#  mutate_all(as.numeric) %>% 
   filter(!is.na(time_hr)) %>% 
-  dplyr::select(-time) %>% 
-  pivot_longer(cols = -c(time_hr, Plate), names_to = "well", values_to = "abs_600") %>% 
+  mutate(time_hr_cum = cumsum(time_hr)) %>% 
+  # now drop all the unnecessary columns
+  dplyr::select(-time, -time_diff, -time_hr, -Plate) %>% 
+  pivot_longer(cols = -c(time_hr_cum), names_to = "well", values_to = "abs_600") %>% 
   left_join(map_processed) %>% 
-  drop_na()
+  mutate(time_hr_cum = as.numeric(time_hr_cum),
+         abs_600 = as.numeric(abs_600))
 
 # graph
 data_processed %>% 
-  ggplot(aes(x = time_hr, y = abs_600, group = sample_name, color = sample_name))+
+  ggplot(aes(x = time_hr_cum, y = abs_600, group = sample_name, color = sample_name))+
   geom_point()+
-  geom_line()+
-  facet_wrap(~sample_name + Plate)
+ # geom_line()+
+  facet_wrap(~sample_name)
 
 
