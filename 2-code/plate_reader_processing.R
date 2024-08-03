@@ -31,7 +31,6 @@ data_processed =
   filter(!is.na(time)) %>% 
   mutate(time = as.numeric(time)) %>% 
   arrange(Plate, time) %>% 
-  group_by(Plate) %>% 
   rowwise() %>% 
   # now clean up the time
   # #1: importing from excel f-d up the format
@@ -39,6 +38,7 @@ data_processed =
   # #2: the time is split across multiple sheets/plates, 
   # we need to add them all for an overall cumulative time
   # so, calculate the difference between timesteps and then do a cumulative addition
+  group_by(Plate) %>% 
   mutate(
          time = chron::times(time),
          time_diff = time - lag(time),
